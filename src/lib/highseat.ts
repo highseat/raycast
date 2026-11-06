@@ -1,6 +1,7 @@
 import { OAuth } from "@raycast/api"
 import { OAuthService } from "@raycast/utils"
 import { createApi } from "highseat/api"
+import { createHash } from "node:crypto"
 
 type Method = "get" | "post" | "patch" | "delete"
 type Call = (path: string, options: object) => Promise<unknown>
@@ -67,10 +68,14 @@ export const api = createApi({ token: () => highseat.authorize(), fetch: queuedF
 
 /**
  * A call whose route or body is only known at run time, as an AI tool's is. The API validates every
- * argument, so a wrong one comes back as its own error for the model to read.
+ * argument, so a wrong one comes back as its own error for the model to read. A model can repeat a
+ * save, so a create is keyed by its content, and the API answers a repeat within a day with the
+ * first row.
  */
 export function request(method: Method, path: string, options: object) {
-  return (api[method] as unknown as Call)(path, options)
+  const content = JSON.stringify([path, options])
+  const idempotencyKey = method === "post" ? createHash("sha256").update(content).digest("hex") : undefined
+  return (api[method] as unknown as Call)(path, { ...options, idempotencyKey })
 }
 
 /** Whether a person has connected, without starting a sign-in. */
