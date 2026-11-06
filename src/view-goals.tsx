@@ -16,7 +16,12 @@ function ViewGoals() {
     { execute: Boolean(site) },
   )
 
-  const url = site ? `${APP_URL}/${site.domain}` : APP_URL
+  const actions = (
+    <ActionPanel>
+      <Action.OpenInBrowser title="Open Dashboard" url={site ? `${APP_URL}/${site.domain}` : APP_URL} />
+      <SwitchSiteAction sites={sites} onSelect={setSiteId} />
+    </ActionPanel>
+  )
 
   return (
     <List
@@ -29,12 +34,7 @@ function ViewGoals() {
         icon={Icon.BullsEye}
         title="No goals yet"
         description="Add one in the dashboard, or ask Raycast AI to create it."
-        actions={
-          <ActionPanel>
-            <Action.OpenInBrowser title="Open Dashboard" url={url} />
-            <SwitchSiteAction sites={sites} onSelect={setSiteId} />
-          </ActionPanel>
-        }
+        actions={actions}
       />
       {data?.data.map(goal => (
         <List.Item
@@ -46,12 +46,7 @@ function ViewGoals() {
             { text: formatCount(goal.visitors), tooltip: "Visitors who converted" },
             { tag: formatPercent(goal.rate), tooltip: "Conversion rate" },
           ]}
-          actions={
-            <ActionPanel>
-              <Action.OpenInBrowser title="Open Dashboard" url={url} />
-              <SwitchSiteAction sites={sites} onSelect={setSiteId} />
-            </ActionPanel>
-          }
+          actions={actions}
         />
       ))}
     </List>

@@ -1,42 +1,58 @@
 import { Action, ActionPanel, Icon, List, showToast, Toast } from "@raycast/api"
-import { useCachedPromise, withAccessToken } from "@raycast/utils"
+import { useCachedPromise, useCachedState, withAccessToken } from "@raycast/utils"
+import { PeriodDropdown } from "./components/period-dropdown"
+import { Site, useSites } from "./components/site-picker"
 import { SiteStats } from "./components/site-stats"
-import { formatCount, formatPercent } from "./lib/format"
+import { formatCount } from "./lib/format"
 import { api, APP_URL, disconnect, highseat } from "./lib/highseat"
+import { getOverviewFigures } from "./lib/overview"
+import { DEFAULT_PERIOD, getCompare, getPeriodTitle } from "./lib/periods"
 
 interface SiteItemProps {
-  id: string
-  name: string
-  domain: string
+  site: Site
+  period: string
 }
 
-function SiteItem({ id, name, domain }: SiteItemProps) {
+function SiteItem({ site, period }: SiteItemProps) {
   const { data, isLoading } = useCachedPromise(
-    (site: string) => api.get("/sites/{site}/overview", { path: { site }, query: { period: "7d" } }),
-    [id],
+    (siteId: string, range: string) =>
+      api.get("/sites/{site}/overview", {
+        path: { site: siteId },
+        query: { period: range, compare: getCompare(range) },
+      }),
+    [site.id, period],
   )
-  const overview = data?.data
 
   return (
     <List.Item
-      title={name}
-      subtitle={domain}
-      accessories={
-        overview
-          ? [
-              { text: formatCount(overview.visitors), tooltip: "Visitors, last 7 days" },
-              { text: formatCount(overview.pageviews), tooltip: "Pageviews, last 7 days" },
-              { text: formatPercent(overview.bounceRate), tooltip: "Bounce rate, last 7 days" },
-            ]
-          : isLoading
-            ? [{ icon: Icon.CircleProgress }]
-            : []
+      title={site.name}
+      keywords={[site.domain]}
+      accessories={data ? [{ text: formatCount(data.data.visitors), tooltip: "Visitors" }] : []}
+      detail={
+        <List.Item.Detail
+          isLoading={isLoading}
+          metadata={
+            data && (
+              <List.Item.Detail.Metadata>
+                <List.Item.Detail.Metadata.Label title={site.domain} text={getPeriodTitle(period)} />
+                <List.Item.Detail.Metadata.Separator />
+                {getOverviewFigures(data).map(({ title, value, change }) => (
+                  <List.Item.Detail.Metadata.Label
+                    key={title}
+                    title={title}
+                    text={change ? `${value}  (${change})` : value}
+                  />
+                ))}
+              </List.Item.Detail.Metadata>
+            )
+          }
+        />
       }
       actions={
         <ActionPanel>
-          <Action.Push title="View Stats" icon={Icon.BarChart} target={<SiteStats site={{ id, name, domain }} />} />
-          <Action.OpenInBrowser title="Open Dashboard" url={`${APP_URL}/${domain}`} />
-          <Action.CopyToClipboard title="Copy Domain" content={domain} />
+          <Action.Push title="View Stats" icon={Icon.BarChart} target={<SiteStats site={site} />} />
+          <Action.OpenInBrowser title="Open Dashboard" url={`${APP_URL}/${site.domain}`} />
+          <Action.CopyToClipboard title="Copy Domain" content={site.domain} />
           <Action
             title="Disconnect Highseat"
             icon={Icon.Logout}
@@ -52,16 +68,22 @@ function SiteItem({ id, name, domain }: SiteItemProps) {
   )
 }
 
-function Sites() {
-  const { data, isLoading } = useCachedPromise(() => api.get("/sites"))
+function ViewSites() {
+  const { sites, isLoading } = useSites()
+  const [period, setPeriod] = useCachedState("period", DEFAULT_PERIOD)
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Search sites">
-      {data?.data.map(site => (
-        <SiteItem key={site.id} id={site.id} name={site.name} domain={site.domain} />
+    <List
+      isLoading={isLoading}
+      isShowingDetail
+      searchBarPlaceholder="Search sites"
+      searchBarAccessory={<PeriodDropdown value={period} onChange={setPeriod} />}
+    >
+      {sites.map(site => (
+        <SiteItem key={site.id} site={site} period={period} />
       ))}
     </List>
   )
 }
 
-export default withAccessToken(highseat)(Sites)
+export default withAccessToken(highseat)(ViewSites)

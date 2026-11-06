@@ -1,5 +1,5 @@
 import { withAccessToken } from "@raycast/utils"
-import { request, highseat } from "../lib/highseat"
+import { highseat, request } from "../lib/highseat"
 
 type Input = {
   report:
@@ -76,8 +76,7 @@ const REPORT_PATHS = {
 
 export default withAccessToken(highseat)(async ({ report, site, name, ...query }: Input) => {
   // Only the event report takes the name in its path. The properties report reads it as a filter.
-  const route = REPORT_PATHS[report as keyof typeof REPORT_PATHS]
-  if (!route) throw new Error(`Unknown report: ${report}`)
+  const route = REPORT_PATHS[report]
   if (report === "event") return request("get", route, { path: { site, name }, query })
   return request("get", route, { path: { site }, query: { ...query, name } })
 })

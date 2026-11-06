@@ -4,7 +4,7 @@ export function formatCount(value: number) {
   return countFormat.format(value)
 }
 
-/** A rate the API answers in percent, such as a bounce rate. Empty when no session counts. */
+/** A rate the API answers in percent, such as a bounce rate. Null when no session counts. */
 export function formatPercent(value: number | null | undefined) {
   return value === null || value === undefined ? "n/a" : `${Math.round(value)}%`
 }

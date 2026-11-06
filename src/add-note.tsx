@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Form, LaunchProps, popToRoot, showToast, Toast } from "@raycast/api"
-import { showFailureToast, useCachedPromise, withAccessToken } from "@raycast/utils"
+import { showFailureToast, withAccessToken } from "@raycast/utils"
+import { useSites } from "./components/site-picker"
 import { api, highseat } from "./lib/highseat"
 
 interface NoteValues {
@@ -15,7 +16,7 @@ function formatDay(date: Date) {
 }
 
 function AddNote({ arguments: { text } }: LaunchProps<{ arguments: Arguments.AddNote }>) {
-  const { data, isLoading } = useCachedPromise(() => api.get("/sites"))
+  const { sites, isLoading } = useSites()
 
   async function submit({ site, date, text: note }: NoteValues) {
     const toast = await showToast({ style: Toast.Style.Animated, title: "Adding note" })
@@ -44,7 +45,7 @@ function AddNote({ arguments: { text } }: LaunchProps<{ arguments: Arguments.Add
       }
     >
       <Form.Dropdown id="site" title="Site" storeValue>
-        {data?.data.map(site => (
+        {sites.map(site => (
           <Form.Dropdown.Item key={site.id} value={site.id} title={site.name} />
         ))}
       </Form.Dropdown>

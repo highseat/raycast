@@ -1,5 +1,5 @@
 import { withAccessToken } from "@raycast/utils"
-import { request, highseat } from "../lib/highseat"
+import { highseat, request } from "../lib/highseat"
 
 type Input = {
   /** The site's domain as registered, or its id. */

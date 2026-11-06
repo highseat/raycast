@@ -2,6 +2,10 @@ import { OAuth } from "@raycast/api"
 import { OAuthService } from "@raycast/utils"
 import { createApi } from "highseat/api"
 
+type Method = "get" | "post" | "patch" | "delete"
+type Call = (path: string, options: object) => Promise<unknown>
+type FetchInput = Parameters<typeof fetch>[0]
+
 export const APP_URL = "https://app.highseat.com"
 
 const client = new OAuth.PKCEClient({
@@ -20,10 +24,46 @@ export const highseat = new OAuthService({
   bodyEncoding: "url-encoded",
 })
 
-export const api = createApi({ token: () => highseat.authorize() })
+/** The API runs five calls at once per workspace, so this leaves room for the dashboard and the menu bar. */
+const MAX_RUNNING_CALLS = 3
 
-type Method = "get" | "post" | "patch" | "delete"
-type Call = (path: string, options: object) => Promise<unknown>
+/** A refusal for too many calls at once asks for a short wait. One for the hourly budget does not. */
+const MAX_RETRY_SECONDS = 5
+const MAX_RETRIES = 3
+
+const waiting: (() => void)[] = []
+let running = 0
+
+async function acquireSlot() {
+  while (running >= MAX_RUNNING_CALLS) await new Promise<void>(resolve => waiting.push(resolve))
+  running += 1
+}
+
+function releaseSlot() {
+  running -= 1
+  waiting.shift()?.()
+}
+
+/** A refused call never ran, so sending it again is safe for a write too. */
+async function fetchWithRetry(input: FetchInput, init?: RequestInit, retries = MAX_RETRIES) {
+  const response = await fetch(input, init)
+  const seconds = Number(response.headers.get("Retry-After"))
+  if (response.status !== 429 || retries === 0 || !seconds || seconds > MAX_RETRY_SECONDS) return response
+
+  await new Promise(resolve => setTimeout(resolve, seconds * 1000))
+  return fetchWithRetry(input, init, retries - 1)
+}
+
+async function queuedFetch(input: FetchInput, init?: RequestInit) {
+  await acquireSlot()
+  try {
+    return await fetchWithRetry(input, init)
+  } finally {
+    releaseSlot()
+  }
+}
+
+export const api = createApi({ token: () => highseat.authorize(), fetch: queuedFetch })
 
 /**
  * A call whose route or body is only known at run time, as an AI tool's is. The API validates every

@@ -1,9 +1,10 @@
 import { Action, ActionPanel, Color, List } from "@raycast/api"
 import type { ReactElement } from "react"
 import { useCachedPromise, useCachedState } from "@raycast/utils"
-import { formatChange, formatCount, formatDuration, formatMoney, formatPercent } from "../lib/format"
+import { formatCount } from "../lib/format"
 import { api, APP_URL } from "../lib/highseat"
-import { DEFAULT_PERIOD } from "../lib/periods"
+import { getOverviewFigures } from "../lib/overview"
+import { DEFAULT_PERIOD, getCompare } from "../lib/periods"
 import { PeriodDropdown } from "./period-dropdown"
 import { Site, SwitchSiteAction } from "./site-picker"
 
@@ -25,9 +26,8 @@ interface StatItemProps {
 }
 
 function getChangeColor(change: string, lowerIsBetter?: boolean) {
-  const isUp = change.startsWith("+")
   if (change === "0%") return Color.SecondaryText
-  return isUp === !lowerIsBetter ? Color.Green : Color.Red
+  return change.startsWith("+") === !lowerIsBetter ? Color.Green : Color.Red
 }
 
 function StatItem({ title, value, change, lowerIsBetter, actions }: StatItemProps) {
@@ -44,8 +44,7 @@ function StatItem({ title, value, change, lowerIsBetter, actions }: StatItemProp
 }
 
 async function fetchStats(site: string, period: string) {
-  // All time has no earlier range to compare with.
-  const compare = period === "all" ? "off" : "previous"
+  const compare = getCompare(period)
   const limit = ROWS_PER_SECTION
   const [overview, pages, sources, countries] = await Promise.all([
     api.get("/sites/{site}/overview", { path: { site }, query: { period, compare } }),
@@ -60,9 +59,6 @@ async function fetchStats(site: string, period: string) {
 export function SiteStats({ site, sites = [], onSwitchSite }: SiteStatsProps) {
   const [period, setPeriod] = useCachedState("period", DEFAULT_PERIOD)
   const { data, isLoading } = useCachedPromise(fetchStats, [site.id, period])
-  const overview = data?.overview.data
-  const previous = overview?.previous
-  const currency = data?.overview.meta.currency ?? "USD"
 
   const actions = (
     <ActionPanel>
@@ -78,47 +74,11 @@ export function SiteStats({ site, sites = [], onSwitchSite }: SiteStatsProps) {
       searchBarPlaceholder={`Filter ${site.domain}`}
       searchBarAccessory={<PeriodDropdown value={period} onChange={setPeriod} />}
     >
-      {overview && (
+      {data && (
         <List.Section title="Overview">
-          <StatItem
-            title="Visitors"
-            value={formatCount(overview.visitors)}
-            change={formatChange(overview.visitors, previous?.visitors)}
-            actions={actions}
-          />
-          <StatItem
-            title="Pageviews"
-            value={formatCount(overview.pageviews)}
-            change={formatChange(overview.pageviews, previous?.pageviews)}
-            actions={actions}
-          />
-          <StatItem
-            title="Sessions"
-            value={formatCount(overview.sessions)}
-            change={formatChange(overview.sessions, previous?.sessions)}
-            actions={actions}
-          />
-          <StatItem
-            title="Bounce Rate"
-            value={formatPercent(overview.bounceRate)}
-            change={formatChange(overview.bounceRate, previous?.bounceRate)}
-            lowerIsBetter
-            actions={actions}
-          />
-          <StatItem
-            title="Session Duration"
-            value={formatDuration(overview.avgDuration)}
-            change={formatChange(overview.avgDuration, previous?.avgDuration)}
-            actions={actions}
-          />
-          {overview.hasRevenue && (
-            <StatItem
-              title="Revenue"
-              value={formatMoney(overview.revenue, currency)}
-              change={formatChange(overview.revenue, previous?.revenue)}
-              actions={actions}
-            />
-          )}
+          {getOverviewFigures(data.overview).map(figure => (
+            <StatItem key={figure.title} {...figure} actions={actions} />
+          ))}
         </List.Section>
       )}
       <List.Section title="Top Pages">

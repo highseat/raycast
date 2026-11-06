@@ -9,3 +9,12 @@ export const PERIODS = [
   { value: "year", title: "This Year" },
   { value: "all", title: "All Time" },
 ]
+
+export function getPeriodTitle(period: string) {
+  return PERIODS.find(({ value }) => value === period)?.title ?? period
+}
+
+/** All time has no earlier range to compare with. */
+export function getCompare(period: string) {
+  return period === "all" ? "off" : "previous"
+}

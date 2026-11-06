@@ -1,18 +1,19 @@
 import { Action, ActionPanel, Icon, Keyboard } from "@raycast/api"
 import { useCachedPromise, useCachedState } from "@raycast/utils"
+import type { ApiResult } from "highseat/api"
 import { api } from "../lib/highseat"
 
-export interface Site {
-  id: string
-  name: string
-  domain: string
+export type Site = ApiResult<"/sites">["data"][number]
+
+export function useSites() {
+  const { data, isLoading } = useCachedPromise(() => api.get("/sites"))
+  return { sites: data?.data ?? [], isLoading }
 }
 
 /** The sites of the connection and the one last picked, which every site command shares. */
 export function useSelectedSite() {
-  const { data, isLoading } = useCachedPromise(() => api.get("/sites"))
+  const { sites, isLoading } = useSites()
   const [siteId, setSiteId] = useCachedState<string | undefined>("site-id", undefined)
-  const sites: Site[] = data?.data ?? []
 
   return {
     sites,

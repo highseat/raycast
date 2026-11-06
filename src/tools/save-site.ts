@@ -1,6 +1,6 @@
 import { Tool } from "@raycast/api"
 import { withAccessToken } from "@raycast/utils"
-import { request, highseat } from "../lib/highseat"
+import { highseat, request } from "../lib/highseat"
 
 type Input = {
   /** The site's name, as the dashboard shows it. */
