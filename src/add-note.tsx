@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Form, LaunchProps, popToRoot, showToast, Toast } from "@raycast/api"
 import { withAccessToken } from "@raycast/utils"
-import { useSelectedSite } from "./components/site-picker"
+import { getSiteIcon, useSelectedSite } from "./components/site-picker"
 import { api, highseat } from "./lib/highseat"
 
 interface NoteValues {
@@ -49,8 +49,8 @@ function AddNote({ arguments: { text } }: LaunchProps<{ arguments: Arguments.Add
       {/* The sites load after the form opens, so the note goes to the site this dropdown shows. */}
       {site && (
         <Form.Dropdown id="site" title="Site" value={site.id} onChange={setSiteId}>
-          {sites.map(({ id, name }) => (
-            <Form.Dropdown.Item key={id} value={id} title={name} />
+          {sites.map(row => (
+            <Form.Dropdown.Item key={row.id} icon={getSiteIcon(row)} value={row.id} title={row.name} />
           ))}
         </Form.Dropdown>
       )}

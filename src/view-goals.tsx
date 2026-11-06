@@ -1,5 +1,6 @@
-import { Action, ActionPanel, Icon, List } from "@raycast/api"
+import { Action, ActionPanel, Icon, Keyboard, List } from "@raycast/api"
 import { useCachedPromise, useCachedState, withAccessToken } from "@raycast/utils"
+import { LoadError, RefreshAction } from "./components/load-state"
 import { PeriodDropdown } from "./components/period-dropdown"
 import { SwitchSiteAction, useSelectedSite } from "./components/site-picker"
 import { formatCount, formatPercent } from "./lib/format"
@@ -9,16 +10,21 @@ import { DEFAULT_PERIOD } from "./lib/periods"
 function ViewGoals() {
   const { sites, site, setSiteId, isLoading: isLoadingSites } = useSelectedSite()
   const [period, setPeriod] = useCachedState("period", DEFAULT_PERIOD)
-  const { data, isLoading } = useCachedPromise(
+  const { data, isLoading, error, revalidate } = useCachedPromise(
     (siteId: string, range: string) =>
       api.get("/sites/{site}/goals/conversions", { path: { site: siteId }, query: { period: range } }),
     [site?.id ?? "", period],
-    { execute: Boolean(site) },
+    { execute: Boolean(site), keepPreviousData: true },
   )
 
   const actions = (
     <ActionPanel>
-      <Action.OpenInBrowser title="Open Dashboard" url={site ? `${APP_URL}/${site.domain}` : APP_URL} />
+      <Action.OpenInBrowser
+        title="Open Dashboard"
+        url={site ? `${APP_URL}/${site.domain}` : APP_URL}
+        shortcut={Keyboard.Shortcut.Common.Open}
+      />
+      <RefreshAction onRefresh={revalidate} />
       <SwitchSiteAction sites={sites} onSelect={setSiteId} />
     </ActionPanel>
   )
@@ -30,12 +36,16 @@ function ViewGoals() {
       searchBarPlaceholder="Filter goals"
       searchBarAccessory={<PeriodDropdown value={period} onChange={setPeriod} />}
     >
-      <List.EmptyView
-        icon={Icon.BullsEye}
-        title="No goals yet"
-        description="Add one in the dashboard, or ask Raycast AI to create it."
-        actions={actions}
-      />
+      {error && !isLoading ? (
+        <LoadError error={error} actions={actions} />
+      ) : (
+        <List.EmptyView
+          icon={Icon.BullsEye}
+          title="No goals yet"
+          description="Add one in the dashboard, or ask Raycast AI to create it."
+          actions={actions}
+        />
+      )}
       {data?.data.map(goal => (
         <List.Item
           key={goal.id}

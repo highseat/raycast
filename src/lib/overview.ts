@@ -1,3 +1,4 @@
+import { Color } from "@raycast/api"
 import type { ApiResult } from "highseat/api"
 import { formatChange, formatCount, formatDuration, formatMoney, formatPercent } from "./format"
 
@@ -7,6 +8,11 @@ interface OverviewFigure {
   change?: string
   /** True when a lower figure is the good direction, as for a bounce rate. */
   lowerIsBetter?: boolean
+}
+
+export function getChangeColor(change: string, lowerIsBetter?: boolean) {
+  if (change === "0%") return Color.SecondaryText
+  return change.startsWith("+") === !lowerIsBetter ? Color.Green : Color.Red
 }
 
 /** The labelled figures of a site's overview, each with its change against the previous range. */

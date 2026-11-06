@@ -1,7 +1,17 @@
 const countFormat = new Intl.NumberFormat()
+const regionNames = new Intl.DisplayNames(undefined, { type: "region" })
+
+/** The offset from an ASCII capital to its regional indicator, two of which draw a flag. */
+const FLAG_OFFSET = 127397
 
 export function formatCount(value: number) {
   return countFormat.format(value)
+}
+
+/** A country from its ISO code, such as PL, with its flag. */
+export function formatCountry(code: string) {
+  const flag = String.fromCodePoint(...[...code].map(letter => letter.charCodeAt(0) + FLAG_OFFSET))
+  return `${flag} ${regionNames.of(code)}`
 }
 
 /** A rate the API answers in percent, such as a bounce rate. Null when no session counts. */

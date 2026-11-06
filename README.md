@@ -6,7 +6,7 @@ See your [Highseat](https://highseat.com) website analytics in Raycast, and ask 
 
 - **View Sites** lists your sites with their visitors over the last 24 hours, and shows the selected site's figures beside the list for the period you pick.
 - **View Stats** shows one site for a period: visitors, pageviews, sessions, bounce rate and revenue against the previous period, plus top pages, sources and countries.
-- **Live Visitors** keeps the number of visitors on a site in your menu bar, refreshed every 5 minutes. Open the menu to see today's total or switch sites.
+- **Live Visitors** keeps the number of visitors on a site in your menu bar, refreshed every 5 minutes. Open the menu to see every site's live and 24-hour visitors, and pick the site to show.
 - **View Goals** shows how many visitors reached each goal, and the conversion rate.
 - **Add Note** pins a note to a day of a site's chart.
 
