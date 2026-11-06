@@ -1,10 +1,9 @@
 import { Action, ActionPanel, Form, LaunchProps, popToRoot, showToast, Toast } from "@raycast/api"
-import { showFailureToast, withAccessToken } from "@raycast/utils"
-import { useSites } from "./components/site-picker"
+import { withAccessToken } from "@raycast/utils"
+import { useSelectedSite } from "./components/site-picker"
 import { api, highseat } from "./lib/highseat"
 
 interface NoteValues {
-  site: string
   date: Date | null
   text: string
 }
@@ -16,22 +15,25 @@ function formatDay(date: Date) {
 }
 
 function AddNote({ arguments: { text } }: LaunchProps<{ arguments: Arguments.AddNote }>) {
-  const { sites, isLoading } = useSites()
+  const { sites, site, setSiteId, isLoading } = useSelectedSite()
 
-  async function submit({ site, date, text: note }: NoteValues) {
+  async function submit({ date, text: note }: NoteValues) {
+    if (!site) return
+
     const toast = await showToast({ style: Toast.Style.Animated, title: "Adding note" })
 
     try {
       await api.post("/sites/{site}/notes", {
-        path: { site },
+        path: { site: site.id },
         body: { date: formatDay(date ?? new Date()), text: note },
       })
       toast.style = Toast.Style.Success
       toast.title = "Note added"
       await popToRoot()
     } catch (error) {
-      await toast.hide()
-      await showFailureToast(error, { title: "Could not add the note" })
+      toast.style = Toast.Style.Failure
+      toast.title = "Could not add the note"
+      toast.message = error instanceof Error ? error.message : String(error)
     }
   }
 
@@ -44,11 +46,14 @@ function AddNote({ arguments: { text } }: LaunchProps<{ arguments: Arguments.Add
         </ActionPanel>
       }
     >
-      <Form.Dropdown id="site" title="Site" storeValue>
-        {sites.map(site => (
-          <Form.Dropdown.Item key={site.id} value={site.id} title={site.name} />
-        ))}
-      </Form.Dropdown>
+      {/* The sites load after the form opens, so the note goes to the site this dropdown shows. */}
+      {site && (
+        <Form.Dropdown id="site" title="Site" value={site.id} onChange={setSiteId}>
+          {sites.map(({ id, name }) => (
+            <Form.Dropdown.Item key={id} value={id} title={name} />
+          ))}
+        </Form.Dropdown>
+      )}
       <Form.DatePicker id="date" title="Date" type={Form.DatePicker.Type.Date} defaultValue={new Date()} />
       <Form.TextArea id="text" title="Note" defaultValue={text} placeholder="Launched the new pricing page" />
     </Form>
