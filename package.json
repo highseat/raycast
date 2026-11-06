@@ -5,6 +5,8 @@
   "description": "See your website analytics and manage notes, goals, funnels and reports from Raycast.",
   "icon": "icon.png",
   "author": "piotrkulpinski",
+  "owner": "highseat",
+  "access": "public",
   "categories": [
     "Data",
     "Web"
